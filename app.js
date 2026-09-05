@@ -9,9 +9,17 @@ const buttons = document.querySelectorAll("[data-section]");
 const sections = document.querySelectorAll(".section-content");
 const message = document.querySelector("#message");
 const reservationsList = document.querySelector("#reservations-list");
+const roomsList = document.querySelector("#rooms-list");
 const reservationForm = document.querySelector("#reservation-form");
 const roomSelect = document.querySelector("#room");
 const clientSelect = document.querySelector("#client");
+const newRoomButton = document.querySelector("#new-room-button");
+const cancelRoomButton = document.querySelector("#cancel-room-button");
+const roomForm = document.querySelector("#room-form");
+const roomFormContainer = document.querySelector("#room-form-container");
+const roomNameInput = document.querySelector("#room-name");
+const roomDescriptionInput = document.querySelector("#room-description");
+let editingRoomId = null;
 
 function showMessage(text, type) {
   message.textContent = text;
@@ -21,7 +29,7 @@ function showMessage(text, type) {
 async function loadRooms() {
   const { data, error } = await supabaseClient
     .from("rooms")
-    .select("id, name")
+    .select("id, name, description")
     .order("name");
 
   if (error) {
@@ -31,12 +39,88 @@ async function loadRooms() {
   }
 
   roomSelect.innerHTML = '<option value="">Select a room</option>';
+  roomsList.innerHTML = "";
   data.forEach((room) => {
     roomSelect.insertAdjacentHTML(
       "beforeend",
       `<option value="${room.id}">${room.name}</option>`
     );
+    roomsList.insertAdjacentHTML(
+      "beforeend",
+      `<tr>
+        <td>${room.name}</td>
+        <td>${room.description || ""}</td>
+        <td>
+          <button class="btn btn-sm btn-outline-primary edit-room-button" data-id="${room.id}">Edit</button>
+          <button class="btn btn-sm btn-outline-danger delete-room-button" data-id="${room.id}">Delete</button>
+        </td>
+      </tr>`
+    );
   });
+}
+
+function showRoomForm(room) {
+  editingRoomId = room ? room.id : null;
+  roomNameInput.value = room ? room.name : "";
+  roomDescriptionInput.value = room ? room.description || "" : "";
+  roomFormContainer.classList.remove("d-none");
+  roomNameInput.focus();
+}
+
+function hideRoomForm() {
+  editingRoomId = null;
+  roomForm.reset();
+  roomFormContainer.classList.add("d-none");
+}
+
+async function saveRoom(event) {
+  event.preventDefault();
+
+  const name = roomNameInput.value.trim();
+  const description = roomDescriptionInput.value.trim();
+
+  if (!name) {
+    showMessage("Room name is required.", "danger");
+    return;
+  }
+
+  const roomData = { name, description };
+  const { error } = editingRoomId
+    ? await supabaseClient.from("rooms").update(roomData).eq("id", editingRoomId)
+    : await supabaseClient.from("rooms").insert(roomData);
+
+  if (error) {
+    console.error("Could not save room:", error);
+    showMessage(`Could not save room: ${error.message}`, "danger");
+    return;
+  }
+
+  const messageText = editingRoomId
+    ? "Room updated successfully."
+    : "Room created successfully.";
+  hideRoomForm();
+  await loadRooms();
+  showMessage(messageText, "success");
+}
+
+async function deleteRoom(roomId) {
+  if (!window.confirm("Delete this room?")) {
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("rooms")
+    .delete()
+    .eq("id", roomId);
+
+  if (error) {
+    console.error("Could not delete room:", error);
+    showMessage(`Could not delete room. It may be used by a reservation: ${error.message}`, "danger");
+    return;
+  }
+
+  showMessage("Room deleted successfully.", "success");
+  await loadRooms();
 }
 
 async function loadClients() {
@@ -122,6 +206,30 @@ reservationForm.addEventListener("submit", async (event) => {
   showMessage("Reservation saved successfully.", "success");
 });
 
+newRoomButton.addEventListener("click", () => showRoomForm());
+cancelRoomButton.addEventListener("click", hideRoomForm);
+roomForm.addEventListener("submit", saveRoom);
+
+roomsList.addEventListener("click", (event) => {
+  const roomId = event.target.dataset.id;
+  if (!roomId) {
+    return;
+  }
+
+  if (event.target.classList.contains("edit-room-button")) {
+    const row = event.target.closest("tr");
+    showRoomForm({
+      id: roomId,
+      name: row.children[0].textContent,
+      description: row.children[1].textContent
+    });
+  }
+
+  if (event.target.classList.contains("delete-room-button")) {
+    deleteRoom(roomId);
+  }
+});
+
 buttons.forEach((button) => {
   button.addEventListener("click", () => {
     const sectionId = button.dataset.section;
@@ -137,6 +245,10 @@ buttons.forEach((button) => {
 
     if (sectionId === "reservations") {
       loadReservations();
+    }
+
+    if (sectionId === "rooms") {
+      loadRooms();
     }
   });
 });
