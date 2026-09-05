@@ -270,6 +270,30 @@ reservationForm.addEventListener("submit", async (event) => {
     return;
   }
 
+  const { data: existingReservations, error: conflictError } = await supabaseClient
+    .from("reservations")
+    .select("date_from, date_to, room:rooms(name)")
+    .eq("room_id", roomId);
+
+  if (conflictError) {
+    console.error("Could not check reservation conflicts:", conflictError);
+    showMessage(`Could not check room availability: ${conflictError.message}`, "danger");
+    return;
+  }
+
+  const conflictingReservation = existingReservations.find((reservation) =>
+    dateFrom < reservation.date_to && dateTo > reservation.date_from
+  );
+
+  if (conflictingReservation) {
+    const roomName = conflictingReservation.room?.name || roomSelect.selectedOptions[0].textContent;
+    showMessage(
+      `${roomName} is already reserved from ${conflictingReservation.date_from} to ${conflictingReservation.date_to}.`,
+      "danger"
+    );
+    return;
+  }
+
   const { error } = await supabaseClient
     .from("reservations")
     .insert({
