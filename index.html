@@ -31,24 +31,19 @@
       <h2 class="mb-3">Reservations</h2>
       <div class="card">
         <div class="card-body">
-          <p class="text-muted">Create and view room reservations here.</p>
-          <form id="reservation-form" class="row g-3">
-            <div class="col-md-4">
-              <label for="client" class="form-label">Client</label>
-              <input type="text" class="form-control" id="client" placeholder="Client name">
-            </div>
-            <div class="col-md-4">
-              <label for="room" class="form-label">Room</label>
-              <input type="text" class="form-control" id="room" placeholder="Room name or number">
-            </div>
-            <div class="col-md-4">
-              <label for="date" class="form-label">Date</label>
-              <input type="date" class="form-control" id="date">
-            </div>
-            <div class="col-12">
-              <button type="submit" class="btn btn-primary">Add reservation</button>
-            </div>
-          </form>
+          <div class="table-responsive">
+            <table class="table table-striped mb-0">
+              <thead>
+                <tr>
+                  <th scope="col">Room</th>
+                  <th scope="col">Client</th>
+                  <th scope="col">From</th>
+                  <th scope="col">To</th>
+                </tr>
+              </thead>
+              <tbody id="reservations-list"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -56,6 +51,7 @@
     </section>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
 </body>
 </html>
