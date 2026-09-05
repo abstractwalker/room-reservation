@@ -1,3 +1,3 @@
 # room-reservation
-Simple room reservation application.
+Simple room reservation application.  
 Basic CRUD functionality.
