@@ -233,7 +233,7 @@ async function loadReservations() {
 
   const { data, error } = await supabaseClient
     .from("reservations")
-    .select("date_from, date_to, room:rooms(name), client:clients(name)");
+    .select("id, date_from, date_to, room:rooms(name), client:clients(name)");
 
   if (error) {
     console.error("Could not load reservations:", error);
@@ -247,9 +247,34 @@ async function loadReservations() {
       <td>${reservation.client?.name || "-"}</td>
       <td>${reservation.date_from || "-"}</td>
       <td>${reservation.date_to || "-"}</td>
+      <td>
+        <button class="btn btn-sm btn-outline-danger delete-reservation-button" data-id="${reservation.id}">
+          Delete
+        </button>
+      </td>
     </tr>
   `).join("");
   message.className = "d-none";
+}
+
+async function deleteReservation(reservationId, reservationDetails) {
+  if (!window.confirm(`Delete the reservation for ${reservationDetails}?`)) {
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("reservations")
+    .delete()
+    .eq("id", reservationId);
+
+  if (error) {
+    console.error("Could not delete reservation:", error);
+    showMessage(`Could not delete reservation: ${error.message}`, "danger");
+    return;
+  }
+
+  showMessage("Reservation deleted successfully.", "success");
+  await loadReservations();
 }
 
 reservationForm.addEventListener("submit", async (event) => {
@@ -312,6 +337,16 @@ reservationForm.addEventListener("submit", async (event) => {
   reservationForm.reset();
   await loadReservations();
   showMessage("Reservation saved successfully.", "success");
+});
+
+reservationsList.addEventListener("click", (event) => {
+  if (!event.target.classList.contains("delete-reservation-button")) {
+    return;
+  }
+
+  const row = event.target.closest("tr");
+  const reservationDetails = `${row.children[0].textContent} from ${row.children[2].textContent} to ${row.children[3].textContent}`;
+  deleteReservation(event.target.dataset.id, reservationDetails);
 });
 
 newRoomButton.addEventListener("click", () => showRoomForm());
