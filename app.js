@@ -10,6 +10,7 @@ const sections = document.querySelectorAll(".section-content");
 const message = document.querySelector("#message");
 const reservationsList = document.querySelector("#reservations-list");
 const roomsList = document.querySelector("#rooms-list");
+const clientsList = document.querySelector("#clients-list");
 const reservationForm = document.querySelector("#reservation-form");
 const roomSelect = document.querySelector("#room");
 const clientSelect = document.querySelector("#client");
@@ -19,7 +20,14 @@ const roomForm = document.querySelector("#room-form");
 const roomFormContainer = document.querySelector("#room-form-container");
 const roomNameInput = document.querySelector("#room-name");
 const roomDescriptionInput = document.querySelector("#room-description");
+const newClientButton = document.querySelector("#new-client-button");
+const cancelClientButton = document.querySelector("#cancel-client-button");
+const clientForm = document.querySelector("#client-form");
+const clientFormContainer = document.querySelector("#client-form-container");
+const clientNameInput = document.querySelector("#client-name");
+const clientDescriptionInput = document.querySelector("#client-description");
 let editingRoomId = null;
+let editingClientId = null;
 
 function showMessage(text, type) {
   message.textContent = text;
@@ -126,7 +134,7 @@ async function deleteRoom(roomId) {
 async function loadClients() {
   const { data, error } = await supabaseClient
     .from("clients")
-    .select("id, name")
+    .select("id, name, description")
     .order("name");
 
   if (error) {
@@ -136,12 +144,88 @@ async function loadClients() {
   }
 
   clientSelect.innerHTML = '<option value="">Select a client</option>';
+  clientsList.innerHTML = "";
   data.forEach((client) => {
     clientSelect.insertAdjacentHTML(
       "beforeend",
       `<option value="${client.id}">${client.name}</option>`
     );
+    clientsList.insertAdjacentHTML(
+      "beforeend",
+      `<tr>
+        <td>${client.name}</td>
+        <td>${client.description || ""}</td>
+        <td>
+          <button class="btn btn-sm btn-outline-primary edit-client-button" data-id="${client.id}">Edit</button>
+          <button class="btn btn-sm btn-outline-danger delete-client-button" data-id="${client.id}">Delete</button>
+        </td>
+      </tr>`
+    );
   });
+}
+
+function showClientForm(client) {
+  editingClientId = client ? client.id : null;
+  clientNameInput.value = client ? client.name : "";
+  clientDescriptionInput.value = client ? client.description || "" : "";
+  clientFormContainer.classList.remove("d-none");
+  clientNameInput.focus();
+}
+
+function hideClientForm() {
+  editingClientId = null;
+  clientForm.reset();
+  clientFormContainer.classList.add("d-none");
+}
+
+async function saveClient(event) {
+  event.preventDefault();
+
+  const name = clientNameInput.value.trim();
+  const description = clientDescriptionInput.value.trim();
+
+  if (!name) {
+    showMessage("Client name is required.", "danger");
+    return;
+  }
+
+  const clientData = { name, description };
+  const { error } = editingClientId
+    ? await supabaseClient.from("clients").update(clientData).eq("id", editingClientId)
+    : await supabaseClient.from("clients").insert(clientData);
+
+  if (error) {
+    console.error("Could not save client:", error);
+    showMessage(`Could not save client: ${error.message}`, "danger");
+    return;
+  }
+
+  const messageText = editingClientId
+    ? "Client updated successfully."
+    : "Client created successfully.";
+  hideClientForm();
+  await loadClients();
+  showMessage(messageText, "success");
+}
+
+async function deleteClient(clientId) {
+  if (!window.confirm("Delete this client?")) {
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("clients")
+    .delete()
+    .eq("id", clientId);
+
+  if (error) {
+    console.error("Could not delete client:", error);
+    showMessage(`Could not delete client. It may be used by a reservation: ${error.message}`, "danger");
+    return;
+  }
+
+  showMessage("Client deleted successfully.", "success");
+  await loadClients();
 }
 
 async function loadReservations() {
@@ -230,6 +314,30 @@ roomsList.addEventListener("click", (event) => {
   }
 });
 
+newClientButton.addEventListener("click", () => showClientForm());
+cancelClientButton.addEventListener("click", hideClientForm);
+clientForm.addEventListener("submit", saveClient);
+
+clientsList.addEventListener("click", (event) => {
+  const clientId = event.target.dataset.id;
+  if (!clientId) {
+    return;
+  }
+
+  if (event.target.classList.contains("edit-client-button")) {
+    const row = event.target.closest("tr");
+    showClientForm({
+      id: clientId,
+      name: row.children[0].textContent,
+      description: row.children[1].textContent
+    });
+  }
+
+  if (event.target.classList.contains("delete-client-button")) {
+    deleteClient(clientId);
+  }
+});
+
 buttons.forEach((button) => {
   button.addEventListener("click", () => {
     const sectionId = button.dataset.section;
@@ -249,6 +357,10 @@ buttons.forEach((button) => {
 
     if (sectionId === "rooms") {
       loadRooms();
+    }
+
+    if (sectionId === "clients") {
+      loadClients();
     }
   });
 });

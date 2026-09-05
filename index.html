@@ -17,6 +17,8 @@
       <button class="btn btn-primary" data-section="reservations">Reservations</button>
     </div>
 
+    <div id="message" class="alert alert-success mt-3 d-none" role="alert"></div>
+
     <section id="rooms" class="section-content d-none">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">Rooms</h2>
@@ -61,8 +63,46 @@
     </section>
 
     <section id="clients" class="section-content d-none">
-      <h2>Clients</h2>
-      <p class="text-muted">Client management will be added later.</p>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Clients</h2>
+        <button id="new-client-button" class="btn btn-primary">New Client</button>
+      </div>
+
+      <div id="client-form-container" class="card mb-3 d-none">
+        <div class="card-body">
+          <form id="client-form" class="row g-3">
+            <div class="col-md-4">
+              <label for="client-name" class="form-label">Name</label>
+              <input type="text" id="client-name" class="form-control" required>
+            </div>
+            <div class="col-md-5">
+              <label for="client-description" class="form-label">Description</label>
+              <input type="text" id="client-description" class="form-control">
+            </div>
+            <div class="col-md-3 d-flex align-items-end gap-2">
+              <button type="submit" class="btn btn-primary">Save</button>
+              <button type="button" id="cancel-client-button" class="btn btn-secondary">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-striped mb-0">
+              <thead>
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col">Description</th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="clients-list"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section id="reservations" class="section-content">
@@ -110,8 +150,6 @@
           </div>
         </div>
       </div>
-
-      <div id="message" class="alert alert-success mt-3 d-none" role="alert"></div>
     </section>
   </main>
 
